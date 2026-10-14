@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SWIGGY GNU::8085 - Hotel Allocator</title>
+<style>
+body{font-family:monospace;background:#0f0f0f;color:#00ff41;margin:0}
+.header{background:#fc8019;color:#000;padding:10px;text-align:center;font-weight:bold}
+.grid{display:flex;flex-wrap:wrap;gap:10px;padding:20px}
+.table{width:100px;height:80px;border:2px solid #00ff41;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:bold}
+.free{background:#003300}.booked{background:#440000;color:red}.sel{border-color:orange;background:#332200}
+#console{background:#000;color:#0f0;height:150px;overflow:auto;padding:10px;border:1px solid #0f0;margin:10px}
+.cart{position:fixed;right:10px;top:100px;background:#1a1a1a;border:1px solid #fc8019;padding:15px;width:220px}
+button{background:#fc8019;border:none;padding:8px 15px;cursor:pointer;font-weight:bold;margin:2px}
+</style>
+</head>
+<body>
+<div class="header">SWIGGY GNU::8085 - HOTEL ROYAL MUMBAI - 18008 [GNU SIM8085 DINER KERNEL] CALL=Book | PUSH=Order | HLT=Checkout</div>
+
+<div style="padding:10px">ACC: <span id="acc">00H</span> | PC: <span id="pc">2000H</span> | SP: <span id="sp">2110H</span> | HL (2050H): <span id="hl">--</span> | SP Count (2300H): <span id="spc">0</span> | Bill (2200H): Rs <span id="bill">0</span> | Z (2301H): <span id="z">0</span></div>
+
+<h3 style="padding-left:20px">Table Memory [0x2000H]</h3>
+<div class="grid" id="tables"></div>
+
+<h3 style="padding-left:20px">Food Stack - PUSH Operation</h3>
+<div class="grid">
+<button onclick="order(1,'Burger',150)">ADD Burger Rs150 [PUSH 01H]</button>
+<button onclick="order(2,'Pizza',350)">ADD Pizza Rs350 [PUSH 02H]</button>
+<button onclick="order(3,'Cola',50)">ADD Cola Rs50 [PUSH 03H]</button>
+<button onclick="order(4,'Biryani',250)">ADD Biryani Rs250 [PUSH 04H]</button>
+</div>
+
+<div id="console">> LXI SP,2110H - Stack Initialized<br>> LXI H,2000H - Table Memory Initialized<br></div>
+
+<div class="cart">
+<h4>Memory Stack [2100H]</h4>
+<div id="cart">Empty</div>
+<hr>
+Total: Rs <span id="total">0</span><br><br>
+<button onclick="hlt()" style="width:100%">PLACE ORDER - HLT</button>
+</div>
+
+<script>
+let mem=[0,1,0,0,1,0], hl=null, spc=0, bill=0, cart=[];
+function render(){
+ let h=''; mem.forEach((v,i)=>{
+   let c=v==1?'booked':'free'; if(hl==i) c+=' sel';
+   h+=`<div class="table ${c}" onclick="book(${i})">T0${i+1}<br>${v==1?'BOOKED':'FREE'}</div>`;
+ }); document.getElementById('tables').innerHTML=h;
+ document.getElementById('spc').innerText=spc;
+ document.getElementById('bill').innerText=bill;
+ document.getElementById('total').innerText=bill;
+ document.getElementById('hl').innerText= hl!=null? `T0${hl+1} (0x200${hl}H)` : '--';
+ document.getElementById('cart').innerHTML= cart.length? cart.map(x=>`> PUSH ${x.name} | ${x.price}`).join('<br>') : 'Empty';
+}
+function log(m){ document.getElementById('console').innerHTML+=`> ${m}<br>`; document.getElementById('console').scrollTop=9999; }
+function book(id){
+ if(mem[id]==1){ log(`CALL T0${id+1} - FAIL | ACC=01H | Z=0 | Already BOOKED`); document.getElementById('z').innerText='0'; return; }
+ mem[id]=1; hl=id; document.getElementById('acc').innerText='01H'; document.getElementById('pc').innerText=`200${id}H`;
+ document.getElementById('z').innerText='1';
+ log(`CALL T0${id+1} - Allocation Success | HL=T0${id+1} | ACC=RESERVED | Z=1 | STA 2050H`);
+ render();
+}
+function order(code,name,price){
+ if(hl==null){ alert('Pahle Table Book Karo! CALL Operation'); return; }
+ cart.push({code,name,price}); spc++; bill+=price;
+ document.getElementById('sp').innerText=`21${(16-spc).toString(16).toUpperCase()}H`;
+ log(`PUSH ${name} | Code=0${code}H | Price=${price} | SP=000${spc}H | ADI ${price.toString(16).toUpperCase()}H | MEM[2100H] | Bill=${bill}`);
+ render();
+}
+function hlt(){ if(spc==0){alert('Cart Khali Hai!');return;} log(`HLT - Order Placed | Total SP=${spc} | Bill Rs ${bill} | Z=1 | HALT`); alert(`ORDER PLACED! Table T0${hl+1} | Bill Rs ${bill} | SP=${spc}`); }
+render();
+</script>
+
+<p style="text-align:center;padding:20px;color:#888">Live: https://riyachavan935-ai.github.io/Student-/ | GitHub: riyachavan935-ai/Student- | Vercel: v0-project-delta-seven-35.vercel.app | GNU: 2000H=Table, 2050H=HL, 2200H=Bill, 2300H=SP</p>
+</body>
+</html>
